@@ -2,13 +2,25 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:unity_ads_plugin/unity_ads_plugin.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  MobileAds.instance.initialize();
+  initializeUnityAds();
   runApp(const MyApp());
+}
+
+// Initialize Unity Ads
+void initializeUnityAds() {
+  UnityAds.init(
+    gameId: Platform.isAndroid 
+      ? '5721951'  // Replace with your Android Game ID
+      : '5721950',     // Replace with your iOS Game ID
+    testMode: false,             // Set to false for production
+    onComplete: () => print('Unity Ads Initialization Complete'),
+    onFailed: (error, message) => print('Unity Ads Initialization Failed: $message'),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -22,7 +34,124 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Color(0xFFFAF8EF),
       ),
-      home: Game2048(),
+      home: SplashScreen(),
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Interval(0.0, 0.7, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Interval(0.0, 0.7, curve: Curves.easeInOut),
+      ),
+    );
+
+    _controller.forward();
+
+    // Navigate to main game after animation
+    Future.delayed(Duration(milliseconds: 2500), () {
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          transitionDuration: Duration(milliseconds: 500),
+          pageBuilder: (_, __, ___) => Game2048(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+        ),
+      );
+    });
+  }
+
+  
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Color(0xFFFAF8EF),
+      body: Center(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo/Title
+                    Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: Color(0xFF776E65),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            offset: Offset(0, 4),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                          child:Container(
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: AssetImage('assets/just_merge_logo.png'),
+                              repeat: ImageRepeat.repeat,
+                            ),
+                          ),
+                        )
+                      ),
+                    ),
+                    SizedBox(height: 24),
+                    // Loading indicator
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF776E65)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -33,47 +162,13 @@ class Game2048 extends StatefulWidget {
   _Game2048State createState() => _Game2048State();
 }
 
-// Ad Unit IDs configuration
-class AdHelper {
-  // Banner Ad IDs
-  static String get _bannerAdUnitId {
-    try {
-      if (kDebugMode) {
-        return 'ca-app-pub-3940256099942544/6300978111'; // Test ID
-      }
-      // Return actual ad IDs based on platform
-      if (Platform.isAndroid) {
-        return 'ca-app-pub-3004590990738451/8563513230'; // Replace with your Android banner ad ID
-      } else if (Platform.isIOS) {
-        return 'YOUR_IOS_BANNER_AD_ID'; // Replace with your iOS banner ad ID
-      } else {
-        throw UnsupportedError('Unsupported platform');
-      }
-    } catch (e) {
-      print('Error fetching Banner Ad Unit ID: $e');
-      return ''; // Return an empty string or a fallback ad ID if desired
-    }
-  }
+// Unity Ads configuration
+class AdsHelper {
+  static const String _bannerAdPlacementId = 'Banner_Android';       // Replace with your Banner placement ID
+  static const String _interstitialAdPlacementId = 'Interstitial_Android'; // Replace with your Interstitial placement ID
 
-  // Interstitial Ad IDs
-  static String get _interstitialAdUnitId {
-    try {
-      if (kDebugMode) {
-        return 'ca-app-pub-3940256099942544/1033173712'; // Test ID
-      }
-      // Return actual ad IDs based on platform
-      if (Platform.isAndroid) {
-        return 'ca-app-pub-3004590990738451/9221988788'; // Replace with your Android interstitial ad ID
-      } else if (Platform.isIOS) {
-        return 'YOUR_IOS_INTERSTITIAL_AD_ID'; // Replace with your iOS interstitial ad ID
-      } else {
-        throw UnsupportedError('Unsupported platform');
-      }
-    } catch (e) {
-      print('Error fetching Interstitial Ad Unit ID: $e');
-      return ''; // Return an empty string or a fallback ad ID if desired
-    }
-  }
+  static String get bannerAdPlacementId => _bannerAdPlacementId;
+  static String get interstitialAdPlacementId => _interstitialAdPlacementId;
 }
 
 class _Game2048State extends State<Game2048> {
@@ -87,32 +182,15 @@ class _Game2048State extends State<Game2048> {
    // Add state history for revert functionality
   List<Map<String, dynamic>> gameHistory = [];
 
-  // Ad related variables
-  BannerAd? _bannerAd;
-  InterstitialAd? _interstitialAd;
-  bool _isInterstitialAdReady = false;
-  // final String _bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111'; // Test ad unit ID
-  // final String _interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712'; // Test ad unit ID
+  bool _isInterstitialAdLoaded = false;
 
   @override
   void initState() {
     super.initState();
     freeReverts = 1;
-    _loadBannerAd();
     _loadInterstitialAd();
     _loadHighScore(); 
     startNewGame();
-
-    // Initialize ads with test devices if in debug mode
-    if (kDebugMode) {
-      MobileAds.instance.updateRequestConfiguration(
-        RequestConfiguration(
-          testDeviceIds: [
-            '48bf97c5-da09-4731-b962-606470ed7a48'
-          ], // Add your test device ID here
-        ),
-      );
-    }
   }
 
       // Load high score from SharedPreferences
@@ -128,65 +206,49 @@ class _Game2048State extends State<Game2048> {
     await prefs.setInt('highScore', highScore);
   }
 
-  void _loadBannerAd() {
-    _bannerAd = BannerAd(
-      adUnitId: AdHelper._bannerAdUnitId,
-      size: AdSize.banner,
-      request: AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (_) {
-          setState(() {});
-          print('Banner ad loaded successfully');
-        },
-        onAdFailedToLoad: (ad, error) {
-          ad.dispose();
-          print('Banner ad failed to load: ${error.message}');
-          // Retry loading after failure
-          Future.delayed(Duration(seconds: 30), _loadBannerAd);
-        },
-      ),
+  void _loadInterstitialAd() {
+    UnityAds.load(
+      placementId: AdsHelper.interstitialAdPlacementId,
+      onComplete: (placementId) {
+        print('Interstitial Ad Load Complete');
+        setState(() {
+          _isInterstitialAdLoaded = true;
+        });
+      },
+      onFailed: (placementId, error, message) {
+        print('Interstitial Ad Load Failed: $message');
+        // Retry loading after failure
+        Future.delayed(Duration(seconds: 30), _loadInterstitialAd);
+      },
     );
-    _bannerAd?.load();
   }
 
-  void _loadInterstitialAd() {
-    InterstitialAd.load(
-      adUnitId: AdHelper._interstitialAdUnitId,
-      request: AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          _interstitialAd = ad;
-          _isInterstitialAdReady = true;
-          print('Interstitial ad loaded successfully');
+  void _showInterstitialAd(VoidCallback onComplete) {
+    if (_isInterstitialAdLoaded) {
+      UnityAds.showVideoAd(
+        placementId: AdsHelper.interstitialAdPlacementId,
+        onComplete: (placementId) {
+          print('Interstitial Ad Show Complete');
+          _loadInterstitialAd(); // Load the next ad
+          onComplete();
         },
-        onAdFailedToLoad: (error) {
-          print('Interstitial ad failed to load: ${error.message}');
-          // Retry loading after failure
-          Future.delayed(Duration(seconds: 30), _loadInterstitialAd);
+        onFailed: (placementId, error, message) {
+          print('Interstitial Ad Show Failed: $message');
+          onComplete();
         },
-      ),
-    );
+        onStart: (placementId) => print('Interstitial Ad Started'),
+        onClick: (placementId) => print('Interstitial Ad Clicked'),
+      );
+      _isInterstitialAdLoaded = false;
+    } else {
+      onComplete();
+    }
   }
 
   void _showAd() {
-    if (_isInterstitialAdReady) {
-      _interstitialAd?.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (ad) {
-          ad.dispose();
-          _loadInterstitialAd();
-          _showGameOverDialog(); // Show game over dialog after ad is dismissed
-        },
-        onAdFailedToShowFullScreenContent: (ad, error) {
-          ad.dispose();
-          _loadInterstitialAd();
-          _showGameOverDialog(); // Show game over dialog if ad fails
-        },
-      );
-      _interstitialAd?.show();
-      _isInterstitialAdReady = false;
-    } else {
-      _showGameOverDialog(); // Show game over dialog if ad isn't ready
-    }
+    _showInterstitialAd(() {
+      _showGameOverDialog();
+    });
   }
 
   void _showGameOverDialog() {
@@ -246,32 +308,18 @@ class _Game2048State extends State<Game2048> {
     }
   }
 
-   // Revert to previous state
-  // Modified revertMove method
   void revertMove() {
     if (gameHistory.length < 2) return;
 
     if (freeReverts > 0) {
-      // Use free revert
       _executeRevert();
       setState(() {
         freeReverts--;
       });
-    } else if (_isInterstitialAdReady) {
-      // Show ad then revert
-      _interstitialAd?.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (ad) {
-          ad.dispose();
-          _loadInterstitialAd();
-          _executeRevert();
-        },
-        onAdFailedToShowFullScreenContent: (ad, error) {
-          ad.dispose();
-          _loadInterstitialAd();
-        },
-      );
-      _interstitialAd?.show();
-      _isInterstitialAdReady = false;
+    } else if (_isInterstitialAdLoaded) {
+      _showInterstitialAd(() {
+        _executeRevert();
+      });
     }
   }
 
@@ -504,7 +552,7 @@ class _Game2048State extends State<Game2048> {
                       ),
                     ),
                   ),
-                if (freeReverts == 0 && gameHistory.length >= 2 && _isInterstitialAdReady)
+                if (freeReverts == 0 && gameHistory.length >= 2 && _isInterstitialAdLoaded)
                   Positioned(
                     right: 8,
                     top: 8,
@@ -613,13 +661,14 @@ class _Game2048State extends State<Game2048> {
               ),
             ),
           ),
-          if (_bannerAd != null)
-            Container(
-              alignment: Alignment.center,
-              width: _bannerAd!.size.width.toDouble(),
-              height: _bannerAd!.size.height.toDouble(),
-              child: AdWidget(ad: _bannerAd!),
-            ),
+          // Unity Banner Ad
+          UnityBannerAd(
+            placementId: AdsHelper.bannerAdPlacementId,
+            onLoad: (placementId) => print('Banner loaded: $placementId'),
+            onClick: (placementId) => print('Banner clicked: $placementId'),
+            onFailed: (placementId, error, message) => 
+              print('Banner Ad $placementId failed: $message'),
+          ),
         ],
       ),
     );
@@ -627,8 +676,6 @@ class _Game2048State extends State<Game2048> {
 
   @override
   void dispose() {
-    _bannerAd?.dispose();
-    _interstitialAd?.dispose();
     super.dispose();
   }
 }

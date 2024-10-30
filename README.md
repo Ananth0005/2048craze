@@ -1,4 +1,4 @@
-# my_admob_app
+# just_merge
 
 A new Flutter project.
 

@@ -1,4 +1,4 @@
-package com.example.my_admob_app
+package com.example.just_merge
 
 import io.flutter.embedding.android.FlutterActivity
 

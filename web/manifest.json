@@ -1,6 +1,6 @@
 {
-    "name": "my_admob_app",
-    "short_name": "my_admob_app",
+    "name": "just_merge",
+    "short_name": "just_merge",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
